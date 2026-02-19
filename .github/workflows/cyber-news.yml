@@ -1,29 +1,56 @@
-- name: Ensure state dir exists
-  run: mkdir -p state
+name: Cyber News Bot
 
-- name: Cache state
-  uses: actions/cache@v4
-  with:
-    path: state
-    key: cyber-news-state-${{ github.run_id }}
-    restore-keys: |
-      cyber-news-state-
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
 
-- name: Debug state BEFORE run
-  run: |
-    echo "== state before =="
-    ls -la state || true
-    test -f state/seen.json && head -c 400 state/seen.json || echo "no seen.json yet"
+jobs:
+  run-bot:
+    runs-on: ubuntu-latest
+    concurrency:
+      group: cyber-news-bot
+      cancel-in-progress: true
 
-- name: Run bot
-  env:
-    DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
-    STATE_DIR: state
-    MAX_POSTS_PER_RUN: "10"
-  run: node index.js
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
-- name: Debug state AFTER run
-  run: |
-    echo "== state after =="
-    ls -la state || true
-    test -f state/seen.json && tail -c 400 state/seen.json || echo "no seen.json written"
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Ensure state dir exists
+        run: mkdir -p state
+
+      - name: Cache state
+        uses: actions/cache@v4
+        with:
+          path: state
+          key: cyber-news-state-${{ github.run_id }}
+          restore-keys: |
+            cyber-news-state-
+
+      - name: Debug state BEFORE run
+        run: |
+          echo "== state before =="
+          ls -la state || true
+          test -f state/seen.json && head -c 400 state/seen.json || echo "no seen.json yet"
+
+      - name: Run bot
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+          STATE_DIR: state
+          MAX_POSTS_PER_RUN: "10"
+        run: node index.js
+
+      - name: Debug state AFTER run
+        run: |
+          echo "== state after =="
+          ls -la state || true
+          test -f state/seen.json && tail -c 400 state/seen.json || echo "no seen.json written"
