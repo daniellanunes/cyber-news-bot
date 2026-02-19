@@ -2,7 +2,7 @@ name: Cyber News Bot
 
 on:
   schedule:
-    - cron: "*/1 * * * *"   # roda a cada 10 minutos
+    - cron: "*/10 * * * *"   # roda a cada 10 minutos
   workflow_dispatch:          # botão Run manual
 
 jobs:
