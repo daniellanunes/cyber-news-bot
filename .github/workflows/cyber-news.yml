@@ -9,6 +9,10 @@ jobs:
   run-bot:
     runs-on: ubuntu-latest
 
+    concurrency:
+      group: cyber-news-bot
+      cancel-in-progress: true
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -17,26 +21,23 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "20"
+          cache: "npm"
 
       - name: Install dependencies
         run: npm ci
 
-      # restaura estado (evita duplicar notícia)
-      - name: Restore state
-        uses: actions/cache/restore@v4
+      # ✅ Cache do estado (restaura e salva automaticamente)
+      - name: Cache state
+        uses: actions/cache@v4
         with:
           path: state
-          key: cyber-news-state
+          key: cyber-news-state-${{ github.run_id }}
+          restore-keys: |
+            cyber-news-state-
 
       - name: Run bot
         env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
           STATE_DIR: state
+          MAX_POSTS_PER_RUN: "3"
         run: node index.js
-
-      # salva estado novamente
-      - name: Save state
-        uses: actions/cache/save@v4
-        with:
-          path: state
-          key: cyber-news-state
